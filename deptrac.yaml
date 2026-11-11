@@ -1,6 +1,7 @@
 # Architecture rules, checked by `make deptrac` and in CI.
 #
-# - Domain depends only on the shared kernel (Shared/Domain) and PSR interfaces.
+# - Domain depends only on the shared kernel (Shared/Domain), PSR interfaces and
+#   Doctrine Collections (see the DoctrineCollections layer below).
 # - Application depends on its own Domain and the shared kernel; it never imports
 #   Symfony or Doctrine (handlers are wired in services.yaml).
 # - Infrastructure may use everything, including the framework.
@@ -55,16 +56,29 @@ deptrac:
       collectors:
         - type: directory
           value: src/Reporting/Infrastructure/.*
+    # Doctrine Collections gets its own layer instead of a blanket Doctrine
+    # exception: it is a plain data-structure library with no ORM or database
+    # dependency, and aggregates keep their child lines in a Collection so
+    # that the ORM can hydrate them later. A separate layer keeps that one
+    # namespace visible in every ruleset that allows it, while the rest of
+    # Doctrine (ORM, DBAL, Persistence) stays in Framework and out of Domain.
+    - name: DoctrineCollections
+      collectors:
+        - type: classNameRegex
+          value: '#^Doctrine\\Common\\Collections\\#'
+    # The negative lookahead removes Doctrine\Common\Collections from here, so a
+    # class belongs to exactly one of the two layers.
     - name: Framework
       collectors:
         - type: classNameRegex
-          value: '#^(Symfony|Doctrine)\\#'
+          value: '#^(Symfony\\|Doctrine\\(?!Common\\Collections\\))#'
     - name: Psr
       collectors:
         - type: classNameRegex
           value: '#^Psr\\#'
   ruleset:
     SharedDomain:
+      - DoctrineCollections
       - Psr
     SharedApplication:
       - SharedDomain
@@ -73,9 +87,11 @@ deptrac:
       - SharedDomain
       - SharedApplication
       - Framework
+      - DoctrineCollections
       - Psr
     CatalogDomain:
       - SharedDomain
+      - DoctrineCollections
       - Psr
     CatalogApplication:
       - CatalogDomain
@@ -91,9 +107,11 @@ deptrac:
       - PlanningApplication
       - ReportingApplication
       - Framework
+      - DoctrineCollections
       - Psr
     PlanningDomain:
       - SharedDomain
+      - DoctrineCollections
       - Psr
     PlanningApplication:
       - PlanningDomain
@@ -109,6 +127,7 @@ deptrac:
       - CatalogApplication
       - ReportingApplication
       - Framework
+      - DoctrineCollections
       - Psr
     ReportingApplication:
       - SharedApplication
@@ -121,4 +140,5 @@ deptrac:
       - CatalogApplication
       - PlanningApplication
       - Framework
+      - DoctrineCollections
       - Psr
