@@ -21,3 +21,7 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+    # The domain asks for ids through its own port; this is the one place that
+    # names the implementation behind it.
+    App\Shared\Domain\Identity\IdGenerator: '@App\Shared\Infrastructure\Identity\SymfonyUuidGenerator'
