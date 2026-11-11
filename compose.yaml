@@ -1,0 +1,20 @@
+# Local development and test infrastructure. The application itself runs on the
+# host PHP for now; a production image arrives with the Docker step.
+services:
+  database:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: app
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+    healthcheck:
+      test: ["CMD", "pg_isready", "-d", "app", "-U", "app"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+    volumes:
+      - database_data:/var/lib/postgresql/data:rw
+
+volumes:
+  database_data:

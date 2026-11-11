@@ -1,0 +1,6 @@
+# Local-only overrides (Docker Compose loads this file automatically).
+# Port 5434 on the host avoids clashing with a locally installed PostgreSQL.
+services:
+  database:
+    ports:
+      - "5434:5432"
