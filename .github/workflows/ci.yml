@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Code style, static analysis, architecture, tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: bcmath, pdo_pgsql
+          coverage: none
+
+      - uses: ramsey/composer-install@v3
+
+      # Cheapest checks first: a style error fails the build in seconds.
+      - name: Code style
+        run: vendor/bin/php-cs-fixer fix --dry-run --diff
+
+      - name: Static analysis
+        run: |
+          php bin/console cache:warmup --env=dev --quiet
+          vendor/bin/phpstan analyse --no-progress
+
+      - name: Architecture rules
+        run: vendor/bin/deptrac analyse --no-progress
+
+      # No database service yet: the suite has no tests that need one.
+      # PostgreSQL joins the pipeline together with the first repository tests.
+      - name: Tests
+        run: vendor/bin/phpunit
