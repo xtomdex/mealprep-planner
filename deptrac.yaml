@@ -1,0 +1,124 @@
+# Architecture rules, checked by `make deptrac` and in CI.
+#
+# - Domain depends only on the shared kernel (Shared/Domain) and PSR interfaces.
+# - Application depends on its own Domain and the shared kernel; it never imports
+#   Symfony or Doctrine (handlers are wired in services.yaml).
+# - Infrastructure may use everything, including the framework.
+# - Modules talk to each other only from Infrastructure to another module's
+#   Application layer (an adapter calling a public use case or query).
+# - Reporting has no domain: it reads the database schema directly.
+deptrac:
+  paths:
+    - ./src
+  layers:
+    - name: SharedDomain
+      collectors:
+        - type: directory
+          value: src/Shared/Domain/.*
+    - name: SharedApplication
+      collectors:
+        - type: directory
+          value: src/Shared/Application/.*
+    - name: SharedInfrastructure
+      collectors:
+        - type: directory
+          value: src/Shared/Infrastructure/.*
+    - name: CatalogDomain
+      collectors:
+        - type: directory
+          value: src/Catalog/Domain/.*
+    - name: CatalogApplication
+      collectors:
+        - type: directory
+          value: src/Catalog/Application/.*
+    - name: CatalogInfrastructure
+      collectors:
+        - type: directory
+          value: src/Catalog/Infrastructure/.*
+    - name: PlanningDomain
+      collectors:
+        - type: directory
+          value: src/Planning/Domain/.*
+    - name: PlanningApplication
+      collectors:
+        - type: directory
+          value: src/Planning/Application/.*
+    - name: PlanningInfrastructure
+      collectors:
+        - type: directory
+          value: src/Planning/Infrastructure/.*
+    - name: ReportingApplication
+      collectors:
+        - type: directory
+          value: src/Reporting/Application/.*
+    - name: ReportingInfrastructure
+      collectors:
+        - type: directory
+          value: src/Reporting/Infrastructure/.*
+    - name: Framework
+      collectors:
+        - type: classNameRegex
+          value: '#^(Symfony|Doctrine)\\#'
+    - name: Psr
+      collectors:
+        - type: classNameRegex
+          value: '#^Psr\\#'
+  ruleset:
+    SharedDomain:
+      - Psr
+    SharedApplication:
+      - SharedDomain
+      - Psr
+    SharedInfrastructure:
+      - SharedDomain
+      - SharedApplication
+      - Framework
+      - Psr
+    CatalogDomain:
+      - SharedDomain
+      - Psr
+    CatalogApplication:
+      - CatalogDomain
+      - SharedDomain
+      - SharedApplication
+      - Psr
+    CatalogInfrastructure:
+      - CatalogDomain
+      - CatalogApplication
+      - SharedDomain
+      - SharedApplication
+      - SharedInfrastructure
+      - PlanningApplication
+      - ReportingApplication
+      - Framework
+      - Psr
+    PlanningDomain:
+      - SharedDomain
+      - Psr
+    PlanningApplication:
+      - PlanningDomain
+      - SharedDomain
+      - SharedApplication
+      - Psr
+    PlanningInfrastructure:
+      - PlanningDomain
+      - PlanningApplication
+      - SharedDomain
+      - SharedApplication
+      - SharedInfrastructure
+      - CatalogApplication
+      - ReportingApplication
+      - Framework
+      - Psr
+    ReportingApplication:
+      - SharedApplication
+      - Psr
+    ReportingInfrastructure:
+      - ReportingApplication
+      - SharedDomain
+      - SharedApplication
+      - SharedInfrastructure
+      - CatalogApplication
+      - PlanningApplication
+      - Framework
+      - Psr
