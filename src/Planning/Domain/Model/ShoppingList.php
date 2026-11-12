@@ -54,6 +54,42 @@ final class ShoppingList
         return $list;
     }
 
+    /**
+     * Regenerates the list in place after the plan changed. The same rules
+     * as generate() apply and are checked before anything is touched, so a
+     * rejected call leaves the old items intact. Id and plan stay; the list
+     * is a fresh snapshot as of $now.
+     *
+     * @param list<ProductRequirement> $requirements
+     *
+     * @throws ValidationException SHL-02, SHL-03
+     */
+    public function replaceItems(array $requirements, \DateTimeImmutable $now): void
+    {
+        self::assertValid($requirements);
+
+        $this->items->clear();
+        $this->fill($requirements);
+        $this->generatedAt = $now;
+    }
+
+    /**
+     * Whether the plan's entries changed after this list was generated.
+     * MealPlan moves updatedAt on entry changes only, so one comparison
+     * covers drafts and finalized plans alike.
+     *
+     * Asking about another plan's list is a bug in the caller, not a state
+     * the user can cause, hence a LogicException instead of a domain error.
+     */
+    public function isStaleFor(MealPlan $plan): bool
+    {
+        if (!$plan->id()->equals($this->mealPlanId)) {
+            throw new \LogicException(\sprintf('Shopping list %s belongs to plan %s, not %s.', $this->id, $this->mealPlanId, $plan->id()));
+        }
+
+        return $plan->updatedAt() > $this->generatedAt;
+    }
+
     public function id(): ShoppingListId
     {
         return $this->id;
