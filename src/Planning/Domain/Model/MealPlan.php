@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Planning\Domain\Model;
 
 use App\Shared\Domain\Exception\ValidationException;
+use App\Shared\Domain\Identity\DishId;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 
 /**
  * What will be eaten during seven days in a row, starting on any date.
@@ -25,6 +28,9 @@ final class MealPlan
 
     private MealPlanStatus $status;
 
+    /** @var Collection<int, MealPlanEntry> in insertion order */
+    private Collection $entries;
+
     private \DateTimeImmutable $updatedAt;
 
     private readonly \DateTimeImmutable $periodEnd;
@@ -36,6 +42,7 @@ final class MealPlan
     ) {
         $this->periodEnd = $periodStart->modify(\sprintf('+%d days', self::DAYS - 1));
         $this->status = MealPlanStatus::Draft;
+        $this->entries = new ArrayCollection();
         $this->updatedAt = $createdAt;
     }
 
@@ -55,6 +62,78 @@ final class MealPlan
         }
 
         return new self($id, $periodStart, $now);
+    }
+
+    /**
+     * PLN-02: the day lies within the plan's period.
+     * PLN-03: at least one portion.
+     * PLN-06: a plan has at most one entry per (day, dish). Adding a pair
+     * that is already there adds the portions to that entry and returns its
+     * id; $newId is then left unused. Merging instead of rejecting matches
+     * what the user means by "add soup on Monday" twice, and makes the rule
+     * hold by construction rather than by a check a caller could skip.
+     *
+     * @throws ValidationException PLN-02, PLN-03
+     */
+    public function addEntry(MealPlanEntryId $newId, \DateTimeImmutable $day, DishId $dishId, int $portions, \DateTimeImmutable $now): MealPlanEntryId
+    {
+        $day = self::toDay($day);
+        $key = self::dayKey($day);
+
+        if ($key < self::dayKey($this->periodStart) || $key > self::dayKey($this->periodEnd)) {
+            throw new ValidationException('PLN-02', \sprintf('Day %s is outside the plan period %s..%s.', $key, self::dayKey($this->periodStart), self::dayKey($this->periodEnd)), 'day');
+        }
+
+        if ($portions < 1) {
+            throw new ValidationException('PLN-03', \sprintf('An entry needs at least one portion, got %d.', $portions), 'portions');
+        }
+
+        $this->updatedAt = $now;
+
+        foreach ($this->entries as $entry) {
+            if (self::dayKey($entry->day()) === $key && $entry->dishId()->equals($dishId)) {
+                $entry->addPortions($portions);
+
+                return $entry->id();
+            }
+        }
+
+        $this->entries->add(new MealPlanEntry($this, $newId, $day, $dishId, $portions));
+
+        return $newId;
+    }
+
+    /**
+     * Idempotent, like an HTTP DELETE: removing an entry that is not there
+     * (any more) leaves the plan as it is, and updatedAt moves only when an
+     * entry was actually removed, so a repeated request does not make the
+     * shopping list look stale.
+     */
+    public function removeEntry(MealPlanEntryId $entryId, \DateTimeImmutable $now): void
+    {
+        foreach ($this->entries as $entry) {
+            if ($entry->id()->equals($entryId)) {
+                $this->entries->removeElement($entry);
+                $this->updatedAt = $now;
+
+                return;
+            }
+        }
+    }
+
+    /**
+     * Ordered by day, then by insertion. A plain list, not the Collection:
+     * callers cannot add or remove entries behind the aggregate's back.
+     *
+     * @return list<MealPlanEntry>
+     */
+    public function entries(): array
+    {
+        $entries = array_values($this->entries->toArray());
+        // usort is stable since PHP 8.0, so entries of one day keep their insertion order.
+        usort($entries, static fn (MealPlanEntry $a, MealPlanEntry $b): int => self::dayKey($a->day()) <=> self::dayKey($b->day()));
+
+        return $entries;
     }
 
     public function id(): MealPlanId
