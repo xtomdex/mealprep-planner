@@ -1,0 +1,114 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Planning\Domain\Model;
+
+use App\Shared\Domain\Exception\ValidationException;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
+
+/**
+ * What to buy for one meal plan, as a snapshot taken at generatedAt: it does
+ * not follow later changes to the plan by itself.
+ *
+ * Every amount is stored in the canonical unit and rounded up to a whole
+ * number (333.33 g → 334 g, 1.2 kg → 1200 g). The aggregate does it, not
+ * the caller, so no path can produce a list that asks for a third of a gram.
+ *
+ * SHL-01 (one list per plan) is deliberately not checked here: an aggregate
+ * cannot see its siblings, and a check-then-insert would race. The
+ * repository looks the list up by plan, and a UNIQUE constraint on the plan
+ * id in the database settles the rest.
+ */
+final class ShoppingList
+{
+    /** @var Collection<int, ShoppingItem> */
+    private Collection $items;
+
+    private function __construct(
+        private readonly ShoppingListId $id,
+        private readonly MealPlanId $mealPlanId,
+        private \DateTimeImmutable $generatedAt,
+    ) {
+        $this->items = new ArrayCollection();
+    }
+
+    /**
+     * SHL-02: there is at least one requirement; an empty list is never
+     * produced silently.
+     * SHL-03: one item per product, so the same product id twice is refused.
+     * Summing is the decomposer's job; a repeat here means it did not.
+     *
+     * @param list<ProductRequirement> $requirements items keep this order
+     *
+     * @throws ValidationException SHL-02, SHL-03
+     */
+    public static function generate(ShoppingListId $id, MealPlanId $mealPlanId, array $requirements, \DateTimeImmutable $now): self
+    {
+        self::assertValid($requirements);
+
+        $list = new self($id, $mealPlanId, $now);
+        $list->fill($requirements);
+
+        return $list;
+    }
+
+    public function id(): ShoppingListId
+    {
+        return $this->id;
+    }
+
+    public function mealPlanId(): MealPlanId
+    {
+        return $this->mealPlanId;
+    }
+
+    public function generatedAt(): \DateTimeImmutable
+    {
+        return $this->generatedAt;
+    }
+
+    /**
+     * In the order the requirements were given. A plain list, not the
+     * Collection: callers cannot change the items behind the aggregate.
+     *
+     * @return list<ShoppingItem>
+     */
+    public function items(): array
+    {
+        return array_values($this->items->toArray());
+    }
+
+    /**
+     * @param list<ProductRequirement> $requirements
+     *
+     * @throws ValidationException SHL-02, SHL-03
+     */
+    private static function assertValid(array $requirements): void
+    {
+        if ([] === $requirements) {
+            throw new ValidationException('SHL-02', 'A shopping list needs at least one item.', 'items');
+        }
+
+        $seen = [];
+        foreach ($requirements as $i => $requirement) {
+            $key = $requirement->productId->value;
+            if (isset($seen[$key])) {
+                throw new ValidationException('SHL-03', \sprintf('Item %d repeats the product of item %d (product %s).', $i + 1, $seen[$key], $key), 'items');
+            }
+            $seen[$key] = $i + 1;
+        }
+    }
+
+    /**
+     * @param list<ProductRequirement> $requirements already validated
+     */
+    private function fill(array $requirements): void
+    {
+        foreach ($requirements as $i => $requirement) {
+            $quantity = $requirement->quantity->toCanonical()->roundUpToWhole();
+            $this->items->add(new ShoppingItem($this, $i + 1, $requirement->productId, $requirement->productName, $quantity));
+        }
+    }
+}
