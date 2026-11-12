@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Planning\Domain\Model;
 
+use App\Planning\Domain\Event\MealPlanFinalized;
+use App\Shared\Domain\Event\AggregateRoot;
+use App\Shared\Domain\Exception\ConflictException;
 use App\Shared\Domain\Exception\ValidationException;
 use App\Shared\Domain\Identity\DishId;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -21,9 +24,15 @@ use Doctrine\Common\Collections\Collection;
  *
  * The domain has no clock: "now" and "today" are passed in, so tests and
  * handlers decide what time it is.
+ *
+ * updatedAt tracks the entries only; finalize() sets finalizedAt and leaves
+ * updatedAt alone. That keeps staleness of a shopping list one comparison
+ * (plan.updatedAt > list.generatedAt), with no case for finalized plans.
  */
 final class MealPlan
 {
+    use AggregateRoot;
+
     public const int DAYS = 7;
 
     private MealPlanStatus $status;
@@ -32,6 +41,8 @@ final class MealPlan
     private Collection $entries;
 
     private \DateTimeImmutable $updatedAt;
+
+    private ?\DateTimeImmutable $finalizedAt = null;
 
     private readonly \DateTimeImmutable $periodEnd;
 
@@ -65,6 +76,7 @@ final class MealPlan
     }
 
     /**
+     * PLN-04: the plan is still a draft.
      * PLN-02: the day lies within the plan's period.
      * PLN-03: at least one portion.
      * PLN-06: a plan has at most one entry per (day, dish). Adding a pair
@@ -73,10 +85,13 @@ final class MealPlan
      * what the user means by "add soup on Monday" twice, and makes the rule
      * hold by construction rather than by a check a caller could skip.
      *
+     * @throws ConflictException   PLN-04
      * @throws ValidationException PLN-02, PLN-03
      */
     public function addEntry(MealPlanEntryId $newId, \DateTimeImmutable $day, DishId $dishId, int $portions, \DateTimeImmutable $now): MealPlanEntryId
     {
+        $this->assertEditable();
+
         $day = self::toDay($day);
         $key = self::dayKey($day);
 
@@ -108,9 +123,16 @@ final class MealPlan
      * (any more) leaves the plan as it is, and updatedAt moves only when an
      * entry was actually removed, so a repeated request does not make the
      * shopping list look stale.
+     *
+     * PLN-04 still applies to an unknown id: a finalized plan refuses every
+     * write, so the answer does not depend on what the caller guessed.
+     *
+     * @throws ConflictException PLN-04
      */
     public function removeEntry(MealPlanEntryId $entryId, \DateTimeImmutable $now): void
     {
+        $this->assertEditable();
+
         foreach ($this->entries as $entry) {
             if ($entry->id()->equals($entryId)) {
                 $this->entries->removeElement($entry);
@@ -119,6 +141,32 @@ final class MealPlan
                 return;
             }
         }
+    }
+
+    /**
+     * Freezes the plan and records MealPlanFinalized.
+     *
+     * PLN-04: only a draft can be finalized, so finalizing twice is refused
+     * and the event is recorded once per plan.
+     * PLN-05: the plan has at least one entry; an empty plan has nothing to
+     * cook or buy.
+     *
+     * Both are conflicts, not invalid input: the request is fine, the plan's
+     * current state is not, and adding an entry makes PLN-05 go away.
+     *
+     * @throws ConflictException PLN-04, PLN-05
+     */
+    public function finalize(\DateTimeImmutable $now): void
+    {
+        $this->assertEditable();
+
+        if ($this->entries->isEmpty()) {
+            throw new ConflictException('PLN-05', \sprintf('Meal plan %s has no entries and cannot be finalized.', $this->id));
+        }
+
+        $this->status = MealPlanStatus::Finalized;
+        $this->finalizedAt = $now;
+        $this->recordEvent(new MealPlanFinalized($this->id, $now));
     }
 
     /**
@@ -159,6 +207,11 @@ final class MealPlan
         return $this->status;
     }
 
+    public function finalizedAt(): ?\DateTimeImmutable
+    {
+        return $this->finalizedAt;
+    }
+
     public function createdAt(): \DateTimeImmutable
     {
         return $this->createdAt;
@@ -167,6 +220,20 @@ final class MealPlan
     public function updatedAt(): \DateTimeImmutable
     {
         return $this->updatedAt;
+    }
+
+    /**
+     * PLN-04: a finalized plan never changes. Every write path calls this
+     * first, so a new method cannot forget the rule without it showing up
+     * in review as a missing first line.
+     *
+     * @throws ConflictException PLN-04
+     */
+    private function assertEditable(): void
+    {
+        if (MealPlanStatus::Finalized === $this->status) {
+            throw new ConflictException('PLN-04', \sprintf('Meal plan %s is finalized and cannot be changed.', $this->id));
+        }
     }
 
     private static function toDay(\DateTimeImmutable $moment): \DateTimeImmutable
