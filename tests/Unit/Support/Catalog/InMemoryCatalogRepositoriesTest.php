@@ -5,16 +5,19 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Support\Catalog;
 
 use App\Catalog\Domain\Model\Component;
+use App\Catalog\Domain\Model\Dish;
 use App\Catalog\Domain\Model\IngredientLine;
 use App\Catalog\Domain\Model\IngredientRef;
 use App\Catalog\Domain\Model\Product;
 use App\Shared\Domain\Exception\NotFoundException;
 use App\Shared\Domain\Identity\ComponentId;
+use App\Shared\Domain\Identity\DishId;
 use App\Shared\Domain\Identity\ProductId;
 use App\Shared\Domain\Measurement\MeasurementCategory;
 use App\Shared\Domain\Measurement\Quantity;
 use App\Shared\Domain\Measurement\Unit;
 use App\Tests\Support\Catalog\InMemoryComponentRepository;
+use App\Tests\Support\Catalog\InMemoryDishRepository;
 use App\Tests\Support\Catalog\InMemoryProductRepository;
 use PHPUnit\Framework\TestCase;
 
@@ -73,6 +76,19 @@ final class InMemoryCatalogRepositoriesTest extends TestCase
         self::assertTrue($repository->isReferencedAsChild(new ComponentId(self::A)));
         self::assertFalse($repository->isReferencedAsChild(new ComponentId(self::B)));
         self::assertFalse($repository->isReferencedAsChild(new ComponentId(self::C)));
+    }
+
+    public function testDishGetReturnsWhatWasAddedAndThrowsForAnUnknownId(): void
+    {
+        $repository = new InMemoryDishRepository();
+        $dish = Dish::create(new DishId(self::A), 'Rice bowl', [new IngredientLine(IngredientRef::product(new ProductId(self::C)), Quantity::of('150', Unit::Gram))], new \DateTimeImmutable());
+        $repository->add($dish);
+
+        self::assertSame($dish, $repository->get(new DishId(self::A)));
+        self::assertSame([$dish], $repository->all());
+
+        $this->expectException(NotFoundException::class);
+        $repository->get(new DishId(self::B));
     }
 
     private function component(string $id, IngredientRef ...$refs): Component
