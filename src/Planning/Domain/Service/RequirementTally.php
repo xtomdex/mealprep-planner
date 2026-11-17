@@ -6,9 +6,11 @@ namespace App\Planning\Domain\Service;
 
 use App\Planning\Domain\Catalog\ComponentLine;
 use App\Planning\Domain\Catalog\ProductLine;
+use App\Planning\Domain\Exception\InconsistentCatalogData;
 use App\Shared\Domain\Decimal\Decimal;
 use App\Shared\Domain\Identity\ComponentId;
 use App\Shared\Domain\Identity\ProductId;
+use App\Shared\Domain\Measurement\MeasurementCategory;
 use App\Shared\Domain\Measurement\Quantity;
 use App\Shared\Domain\Measurement\Unit;
 
@@ -28,7 +30,13 @@ final class RequirementTally
     /** @var array<string, ProductId> */
     private array $productIds = [];
 
-    /** @var array<string, Quantity> always in the canonical unit */
+    /**
+     * Totals are kept per measurement category, so lines that disagree on how
+     * a product is measured are reported against the product's own category
+     * instead of failing inside Quantity::add() as a client error (QTY-02).
+     *
+     * @var array<string, array<string, Quantity>> product id => category => canonical total
+     */
     private array $productNeed = [];
 
     /** @var array<string, ComponentId> */
@@ -48,7 +56,9 @@ final class RequirementTally
 
         $key = $line->productId->value;
         $this->productIds[$key] = $line->productId;
-        $this->productNeed[$key] = isset($this->productNeed[$key]) ? $this->productNeed[$key]->add($need) : $need;
+        $category = $need->unit->category()->value;
+        $total = $this->productNeed[$key][$category] ?? null;
+        $this->productNeed[$key][$category] = null === $total ? $need : $total->add($need);
     }
 
     public function addComponent(ComponentLine $line, string $numerator, int $denominator): void
@@ -76,9 +86,18 @@ final class RequirementTally
         return array_values($this->componentIds);
     }
 
-    public function productNeed(ProductId $id): Quantity
+    /**
+     * @throws InconsistentCatalogData when a line measured the product in another category
+     */
+    public function productNeed(ProductId $id, MeasurementCategory $category): Quantity
     {
-        return $this->productNeed[$id->value];
+        foreach ($this->productNeed[$id->value] as $need) {
+            if ($need->unit->category() !== $category) {
+                throw InconsistentCatalogData::categoryMismatch($id, $category, $need->unit->category());
+            }
+        }
+
+        return $this->productNeed[$id->value][$category->value];
     }
 
     /**
