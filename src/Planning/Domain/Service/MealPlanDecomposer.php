@@ -9,6 +9,7 @@ use App\Planning\Domain\Catalog\ComponentBom;
 use App\Planning\Domain\Catalog\DishComposition;
 use App\Planning\Domain\Catalog\ProductInfo;
 use App\Planning\Domain\Exception\MissingCatalogData;
+use App\Planning\Domain\Exception\NestingDepthExceeded;
 use App\Planning\Domain\Model\ComponentRequirement;
 use App\Planning\Domain\Model\MealPlan;
 use App\Planning\Domain\Model\PlanRequirements;
@@ -38,7 +39,8 @@ final readonly class MealPlanDecomposer
     }
 
     /**
-     * @throws MissingCatalogData when the catalog lacks a dish, component or product the plan reaches
+     * @throws MissingCatalogData   when the catalog lacks a dish, component or product the plan reaches
+     * @throws NestingDepthExceeded when a child component has components of its own
      */
     public function decompose(MealPlan $plan): PlanRequirements
     {
@@ -66,7 +68,31 @@ final readonly class MealPlanDecomposer
             }
         }
 
+        // Wave 1: the components dishes use directly. Their needs are final
+        // now, since a component with children is never a child itself
+        // (ING-04), so the children's needs can be derived from them.
         $boms = $this->componentBoms($tally->componentIds());
+        $children = [];
+        $parents = [];
+        foreach ($boms as $bom) {
+            [$numerator, $denominator] = $tally->componentNeed($bom->componentId);
+            foreach ($bom->componentLines as $line) {
+                $tally->addComponent($line, $numerator, $denominator * $bom->yieldPortions);
+                $children[$line->componentId->value] = $line->componentId;
+                $parents[$line->componentId->value] = $bom->componentId;
+            }
+        }
+
+        // Wave 2: children not already fetched as direct components.
+        $boms += $this->componentBoms(array_values(array_diff_key($children, $boms)));
+        foreach ($parents as $key => $parent) {
+            if ([] !== $boms[$key]->componentLines) {
+                throw NestingDepthExceeded::at($boms[$key]->componentId, $parent);
+            }
+        }
+
+        // Products last, when every component's need has been summed: a
+        // component can be reached from a dish and from a parent at once.
         foreach ($boms as $bom) {
             [$numerator, $denominator] = $tally->componentNeed($bom->componentId);
             foreach ($bom->productLines as $line) {
