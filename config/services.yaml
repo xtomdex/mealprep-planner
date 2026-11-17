@@ -45,6 +45,7 @@ services:
     # environment fails loudly instead of running against a stand-in.
     # Each line is replaced by the Doctrine implementation in D-07.
     App\Catalog\Domain\Repository\ProductRepository: { synthetic: true }
+    App\Catalog\Domain\Repository\ComponentRepository: { synthetic: true }
     App\Shared\Application\TransactionalRunner: { synthetic: true }
 
 # Test-only messages and handlers for the bus integration test.
@@ -77,6 +78,9 @@ when@test:
         App\Tests\Support\Shared\ImmediateTransactionalRunner: ~
         App\Catalog\Domain\Repository\ProductRepository:
             alias: App\Tests\Support\Catalog\InMemoryProductRepository
+            public: true
+        App\Catalog\Domain\Repository\ComponentRepository:
+            alias: App\Tests\Support\Catalog\InMemoryComponentRepository
             public: true
         App\Shared\Application\TransactionalRunner:
             alias: App\Tests\Support\Shared\ImmediateTransactionalRunner
