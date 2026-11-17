@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Planning\Domain\Service;
 
+use App\Planning\Domain\Exception\InconsistentCatalogData;
 use App\Planning\Domain\Exception\MissingCatalogData;
 use App\Planning\Domain\Exception\NestingDepthExceeded;
 use App\Planning\Domain\Model\MealPlan;
@@ -186,6 +187,19 @@ final class MealPlanDecomposerTest extends TestCase
             ->withDish(self::BOWL, [], [self::SAUCE => '1']);
 
         $this->assertMissing(self::PESTO, fn () => $this->decompose([[self::BOWL, 1]]));
+    }
+
+    public function testAProductLineInAnotherCategoryThanTheProductIsAnIntegrityErrorNamingTheProduct(): void
+    {
+        // Rice is measured by weight; one dish measures it in millilitres.
+        $this->catalog
+            ->withDish(self::BOWL, [self::RICE => $this->g('100')])
+            ->withDish(self::SOUP, [self::RICE => Quantity::of('50', Unit::Millilitre)]);
+
+        $this->expectException(InconsistentCatalogData::class);
+        $this->expectExceptionMessage(\sprintf('Product %s is measured by weight, but a recipe line uses volume.', self::RICE));
+
+        $this->decompose([[self::BOWL, 1], [self::SOUP, 1]]);
     }
 
     public function testAnEmptyPlanNeedsNothingAndAsksTheCatalogNothing(): void

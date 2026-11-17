@@ -8,6 +8,7 @@ use App\Planning\Domain\Catalog\CatalogReader;
 use App\Planning\Domain\Catalog\ComponentBom;
 use App\Planning\Domain\Catalog\DishComposition;
 use App\Planning\Domain\Catalog\ProductInfo;
+use App\Planning\Domain\Exception\InconsistentCatalogData;
 use App\Planning\Domain\Exception\MissingCatalogData;
 use App\Planning\Domain\Exception\NestingDepthExceeded;
 use App\Planning\Domain\Model\ComponentRequirement;
@@ -39,8 +40,9 @@ final readonly class MealPlanDecomposer
     }
 
     /**
-     * @throws MissingCatalogData   when the catalog lacks a dish, component or product the plan reaches
-     * @throws NestingDepthExceeded when a child component has components of its own
+     * @throws MissingCatalogData      when the catalog lacks a dish, component or product the plan reaches
+     * @throws NestingDepthExceeded    when a child component has components of its own
+     * @throws InconsistentCatalogData when a product is measured in a category other than its own
      */
     public function decompose(MealPlan $plan): PlanRequirements
     {
@@ -128,7 +130,7 @@ final readonly class MealPlanDecomposer
         }
 
         $infos = self::indexOrFail($this->catalog->products($ids), static fn (ProductInfo $p): Uuid => $p->productId, $ids, 'product');
-        $products = array_map(static fn (ProductId $id): ProductRequirement => new ProductRequirement($id, $infos[$id->value]->name, $tally->productNeed($id)), $ids);
+        $products = array_map(static fn (ProductId $id): ProductRequirement => new ProductRequirement($id, $infos[$id->value]->name, $tally->productNeed($id, $infos[$id->value]->category)), $ids);
         usort($products, static fn (ProductRequirement $a, ProductRequirement $b): int => self::byName($a->productName, $a->productId, $b->productName, $b->productId));
 
         return $products;
