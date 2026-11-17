@@ -16,8 +16,10 @@ use Symfony\Component\Messenger\Middleware\HandleMessageMiddleware;
 
 /**
  * Edge cases that need an unusual handler setup, on a real Messenger bus
- * built by hand instead of the container: a failing command handler and a
- * query that two handlers answer.
+ * built by hand instead of the container: a failing command handler and
+ * messages that two handlers answer. Those use two anonymous classes, not
+ * closures: Messenger tells handlers apart by name, and two closures would
+ * share the name "Closure" and run only once.
  */
 final class MessengerBusesTest extends TestCase
 {
@@ -34,10 +36,28 @@ final class MessengerBusesTest extends TestCase
         }
     }
 
+    public function testACommandHandledByTwoHandlersIsAProgrammingError(): void
+    {
+        $first = new class {
+            public function __invoke(RecordNote $command): void
+            {
+            }
+        };
+        $second = new class {
+            public function __invoke(RecordNote $command): void
+            {
+            }
+        };
+        $bus = new MessengerCommandBus(self::bus([RecordNote::class => [$first, $second]]));
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage(\sprintf('Command %s must have exactly one handler, 2 handled it.', RecordNote::class));
+
+        $bus->dispatch(new RecordNote('x'));
+    }
+
     public function testAQueryAnsweredByTwoHandlersIsAProgrammingError(): void
     {
-        // Two distinct classes: Messenger tells handlers apart by name, and
-        // two closures would share the name "Closure" and run only once.
         $first = new class {
             public function __invoke(FindNote $query): string
             {
