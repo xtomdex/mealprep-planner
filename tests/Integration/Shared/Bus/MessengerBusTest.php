@@ -7,11 +7,11 @@ namespace App\Tests\Integration\Shared\Bus;
 use App\Shared\Application\Bus\CommandBus;
 use App\Shared\Application\Bus\QueryBus;
 use App\Shared\Domain\Exception\NotFoundException;
-use App\Tests\Integration\Shared\Bus\Fixture\FindNote;
-use App\Tests\Integration\Shared\Bus\Fixture\FindNoteHandler;
-use App\Tests\Integration\Shared\Bus\Fixture\RecordNote;
-use App\Tests\Integration\Shared\Bus\Fixture\RecordNoteHandler;
-use App\Tests\Integration\Shared\Bus\Fixture\UnhandledCommand;
+use App\Tests\Support\Shared\Bus\FindNote;
+use App\Tests\Support\Shared\Bus\FindNoteHandler;
+use App\Tests\Support\Shared\Bus\RecordNote;
+use App\Tests\Support\Shared\Bus\RecordNoteHandler;
+use App\Tests\Support\Shared\Bus\UnhandledCommand;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Exception\NoHandlerForMessageException;
 

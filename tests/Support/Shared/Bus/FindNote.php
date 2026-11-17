@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Integration\Shared\Bus\Fixture;
+namespace App\Tests\Support\Shared\Bus;
 
 use App\Shared\Application\Bus\Query;
 

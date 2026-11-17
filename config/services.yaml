@@ -51,8 +51,8 @@ when@test:
             autowire: true
             autoconfigure: true
         _instanceof: *handler_registration
-        App\Tests\Integration\Shared\Bus\Fixture\:
-            resource: '../tests/Integration/Shared/Bus/Fixture/'
+        App\Tests\Support\Shared\Bus\:
+            resource: '../tests/Support/Shared/Bus/'
         # Nothing in src/ uses the ports yet, so the compiler would remove
         # them; public in the test environment only, for the kernel tests.
         App\Shared\Application\Bus\CommandBus:
