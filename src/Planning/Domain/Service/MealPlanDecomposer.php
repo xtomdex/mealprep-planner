@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Planning\Domain\Service;
 
 use App\Planning\Domain\Catalog\CatalogReader;
+use App\Planning\Domain\Catalog\ComponentBom;
 use App\Planning\Domain\Catalog\DishComposition;
 use App\Planning\Domain\Catalog\ProductInfo;
 use App\Planning\Domain\Exception\MissingCatalogData;
+use App\Planning\Domain\Model\ComponentRequirement;
 use App\Planning\Domain\Model\MealPlan;
 use App\Planning\Domain\Model\PlanRequirements;
 use App\Planning\Domain\Model\ProductRequirement;
+use App\Shared\Domain\Identity\ComponentId;
 use App\Shared\Domain\Identity\DishId;
 use App\Shared\Domain\Identity\ProductId;
 use App\Shared\Domain\Identity\Uuid;
@@ -35,7 +38,7 @@ final readonly class MealPlanDecomposer
     }
 
     /**
-     * @throws MissingCatalogData when the catalog lacks a dish or product the plan reaches
+     * @throws MissingCatalogData when the catalog lacks a dish, component or product the plan reaches
      */
     public function decompose(MealPlan $plan): PlanRequirements
     {
@@ -58,9 +61,34 @@ final readonly class MealPlanDecomposer
             foreach ($composition->productLines as $line) {
                 $tally->addProduct($line, (string) $portions[$key], 1);
             }
+            foreach ($composition->componentLines as $line) {
+                $tally->addComponent($line, (string) $portions[$key], 1);
+            }
         }
 
-        return new PlanRequirements($this->products($tally), []);
+        $boms = $this->componentBoms($tally->componentIds());
+        foreach ($boms as $bom) {
+            [$numerator, $denominator] = $tally->componentNeed($bom->componentId);
+            foreach ($bom->productLines as $line) {
+                $tally->addProduct($line, $numerator, $denominator * $bom->yieldPortions);
+            }
+        }
+
+        return new PlanRequirements($this->products($tally), self::components($tally, $boms));
+    }
+
+    /**
+     * @param list<ComponentId> $ids
+     *
+     * @return array<string, ComponentBom>
+     */
+    private function componentBoms(array $ids): array
+    {
+        if ([] === $ids) {
+            return [];
+        }
+
+        return self::indexOrFail($this->catalog->componentBoms($ids), static fn (ComponentBom $b): Uuid => $b->componentId, $ids, 'component');
     }
 
     /**
@@ -78,6 +106,19 @@ final readonly class MealPlanDecomposer
         usort($products, static fn (ProductRequirement $a, ProductRequirement $b): int => self::byName($a->productName, $a->productId, $b->productName, $b->productId));
 
         return $products;
+    }
+
+    /**
+     * @param array<string, ComponentBom> $boms
+     *
+     * @return list<ComponentRequirement>
+     */
+    private static function components(RequirementTally $tally, array $boms): array
+    {
+        $components = array_map(static fn (ComponentId $id): ComponentRequirement => new ComponentRequirement($id, $boms[$id->value]->name, $tally->componentPortions($id)), $tally->componentIds());
+        usort($components, static fn (ComponentRequirement $a, ComponentRequirement $b): int => self::byName($a->componentName, $a->componentId, $b->componentName, $b->componentId));
+
+        return $components;
     }
 
     /**

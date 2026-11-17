@@ -23,6 +23,8 @@ final class MealPlanDecomposerTest extends TestCase
     private const string PLAN = '0193a5e0-7b1c-7a3e-9f00-000000000001';
     private const string BOWL = '0193a5e0-7b1c-7a3e-9f00-0000000000d1';
     private const string SOUP = '0193a5e0-7b1c-7a3e-9f00-0000000000d2';
+    private const string SAUCE = '0193a5e0-7b1c-7a3e-9f00-0000000000c1';
+    private const string DRESSING = '0193a5e0-7b1c-7a3e-9f00-0000000000c2';
     private const string RICE = '0193a5e0-7b1c-7a3e-9f00-0000000000a1';
     private const string OIL = '0193a5e0-7b1c-7a3e-9f00-0000000000a2';
     private const string TOMATO = '0193a5e0-7b1c-7a3e-9f00-0000000000a3';
@@ -61,6 +63,41 @@ final class MealPlanDecomposerTest extends TestCase
         self::assertSame(['Rice' => '800 g'], self::products($this->decompose([[self::BOWL, 1], [self::SOUP, 1]])));
     }
 
+    public function testADirectComponentContributesItsBomScaledByNeedOverYield(): void
+    {
+        $this->catalog
+            ->withComponent(self::SAUCE, 'Tomato sauce', 4, [self::TOMATO => $this->g('800'), self::OIL => Quantity::of('40', Unit::Millilitre)])
+            ->withDish(self::BOWL, [self::RICE => $this->g('100')], [self::SAUCE => '1']);
+
+        $result = $this->decompose([[self::BOWL, 2]]);
+
+        self::assertSame(['olive oil' => '20 ml', 'Rice' => '200 g', 'Tomato' => '400 g'], self::products($result));
+        self::assertSame(['dishCompositions', 'componentBoms', 'products'], $this->catalog->calls());
+    }
+
+    public function testAFractionalFactorIsAppliedAfterMultiplyingSoNoPrecisionIsLost(): void
+    {
+        $this->catalog
+            ->withComponent(self::SAUCE, 'Tomato sauce', 3, [self::TOMATO => Quantity::of('0.3', Unit::Kilogram)])
+            ->withDish(self::BOWL, [], [self::SAUCE => '1']);
+
+        self::assertSame(['Tomato' => '100 g'], self::products($this->decompose([[self::BOWL, 1]])));
+    }
+
+    public function testComponentsCarryTheirNeededPortionsSummedOverDishes(): void
+    {
+        $this->catalog
+            ->withComponent(self::SAUCE, 'Tomato sauce', 4, [self::TOMATO => $this->g('400')])
+            ->withComponent(self::DRESSING, 'dressing', 10, [self::OIL => Quantity::of('100', Unit::Millilitre)])
+            ->withDish(self::BOWL, [], [self::SAUCE => '0.5', self::DRESSING => '1'])
+            ->withDish(self::SOUP, [], [self::SAUCE => '0.25']);
+
+        $result = $this->decompose([[self::BOWL, 3], [self::SOUP, 2]]);
+
+        self::assertSame(['dressing' => '3 portion', 'Tomato sauce' => '2 portion'], self::components($result));
+        self::assertSame(['olive oil' => '30 ml', 'Tomato' => '200 g'], self::products($result));
+    }
+
     public function testResultsAreSortedByNameIgnoringCaseAndThenById(): void
     {
         $this->catalog
@@ -93,6 +130,13 @@ final class MealPlanDecomposerTest extends TestCase
     public function testAMissingDishIsAnIntegrityErrorNamingTheId(): void
     {
         $this->assertMissing(self::SOUP, fn () => $this->decompose([[self::SOUP, 1]]));
+    }
+
+    public function testAMissingComponentIsAnIntegrityErrorNamingTheId(): void
+    {
+        $this->catalog->withDish(self::BOWL, [], [self::SAUCE => '1']);
+
+        $this->assertMissing(self::SAUCE, fn () => $this->decompose([[self::BOWL, 1]]));
     }
 
     public function testAMissingProductIsAnIntegrityErrorNamingTheId(): void
@@ -138,6 +182,19 @@ final class MealPlanDecomposerTest extends TestCase
         $map = [];
         foreach ($result->products as $product) {
             $map[$product->productName] = (string) $product->quantity;
+        }
+
+        return $map;
+    }
+
+    /**
+     * @return array<string, string> component name => portions, in result order
+     */
+    private static function components(PlanRequirements $result): array
+    {
+        $map = [];
+        foreach ($result->components as $component) {
+            $map[$component->componentName] = (string) $component->portions;
         }
 
         return $map;
