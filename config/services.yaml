@@ -48,6 +48,8 @@ services:
     App\Catalog\Domain\Repository\ComponentRepository: { synthetic: true }
     App\Catalog\Domain\Repository\DishRepository: { synthetic: true }
     App\Planning\Domain\Repository\MealPlanRepository: { synthetic: true }
+    # Replaced by the adapter over Catalog's application layer in D-07.
+    App\Planning\Domain\Catalog\CatalogReader: { synthetic: true }
     App\Shared\Application\TransactionalRunner: { synthetic: true }
 
 # Test-only messages and handlers for the bus integration test.
@@ -91,6 +93,9 @@ when@test:
             public: true
         App\Planning\Domain\Repository\MealPlanRepository:
             alias: App\Tests\Support\Planning\InMemoryMealPlanRepository
+            public: true
+        App\Planning\Domain\Catalog\CatalogReader:
+            alias: App\Tests\Support\Planning\InMemoryCatalogReader
             public: true
         App\Shared\Application\TransactionalRunner:
             alias: App\Tests\Support\Shared\ImmediateTransactionalRunner
