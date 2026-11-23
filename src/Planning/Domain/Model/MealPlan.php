@@ -84,6 +84,9 @@ final class MealPlan
      * id; $newId is then left unused. Merging instead of rejecting matches
      * what the user means by "add soup on Monday" twice, and makes the rule
      * hold by construction rather than by a check a caller could skip.
+     * PLN-07: the dish exists in the catalog. Checked by
+     * AddMealPlanEntryHandler before calling this: the aggregate cannot see
+     * the catalog, so the rule lives with the use case.
      *
      * @throws ConflictException   PLN-04
      * @throws ValidationException PLN-02, PLN-03
