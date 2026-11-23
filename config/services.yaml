@@ -47,6 +47,7 @@ services:
     App\Catalog\Domain\Repository\ProductRepository: { synthetic: true }
     App\Catalog\Domain\Repository\ComponentRepository: { synthetic: true }
     App\Catalog\Domain\Repository\DishRepository: { synthetic: true }
+    App\Planning\Domain\Repository\MealPlanRepository: { synthetic: true }
     App\Shared\Application\TransactionalRunner: { synthetic: true }
 
 # Test-only messages and handlers for the bus integration test.
@@ -76,6 +77,8 @@ when@test:
         # the bus, and need no database.
         App\Tests\Support\Catalog\:
             resource: '../tests/Support/Catalog/'
+        App\Tests\Support\Planning\:
+            resource: '../tests/Support/Planning/'
         App\Tests\Support\Shared\ImmediateTransactionalRunner: ~
         App\Catalog\Domain\Repository\ProductRepository:
             alias: App\Tests\Support\Catalog\InMemoryProductRepository
@@ -85,6 +88,9 @@ when@test:
             public: true
         App\Catalog\Domain\Repository\DishRepository:
             alias: App\Tests\Support\Catalog\InMemoryDishRepository
+            public: true
+        App\Planning\Domain\Repository\MealPlanRepository:
+            alias: App\Tests\Support\Planning\InMemoryMealPlanRepository
             public: true
         App\Shared\Application\TransactionalRunner:
             alias: App\Tests\Support\Shared\ImmediateTransactionalRunner
