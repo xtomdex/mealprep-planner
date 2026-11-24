@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Catalog\Application\Query;
 
 use App\Catalog\Application\View\ComponentSummaryView;
+use App\Catalog\Application\View\DishSummaryView;
 use App\Catalog\Application\View\ProductView;
 
 /**
@@ -31,7 +32,7 @@ final class CatalogOrder
      * strings that look like numbers as numbers, so "10" would sort after "9"
      * while "10a" sorts before "9a".
      *
-     * @template T of ProductView|ComponentSummaryView
+     * @template T of ProductView|ComponentSummaryView|DishSummaryView
      *
      * @param list<T> $views
      *
@@ -39,7 +40,7 @@ final class CatalogOrder
      */
     public static function byName(array $views): array
     {
-        usort($views, static function (ProductView|ComponentSummaryView $a, ProductView|ComponentSummaryView $b): int {
+        usort($views, static function (ProductView|ComponentSummaryView|DishSummaryView $a, ProductView|ComponentSummaryView|DishSummaryView $b): int {
             $byName = strcmp(mb_strtolower($a->name), mb_strtolower($b->name));
 
             return 0 !== $byName ? $byName : strcmp($a->id, $b->id);
