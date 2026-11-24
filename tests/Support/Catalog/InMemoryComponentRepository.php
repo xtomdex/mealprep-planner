@@ -18,6 +18,8 @@ final class InMemoryComponentRepository implements ComponentRepository
     /** @var array<string, Component> keyed by id value */
     private array $components = [];
 
+    private int $findByIdsCalls = 0;
+
     public function get(ComponentId $id): Component
     {
         return $this->components[$id->value] ?? throw new NotFoundException('Component', $id->value);
@@ -25,6 +27,7 @@ final class InMemoryComponentRepository implements ComponentRepository
 
     public function findByIds(array $ids): array
     {
+        ++$this->findByIdsCalls;
         $found = [];
         foreach ($ids as $id) {
             if (isset($this->components[$id->value])) {
@@ -33,6 +36,14 @@ final class InMemoryComponentRepository implements ComponentRepository
         }
 
         return array_values($found);
+    }
+
+    /**
+     * See InMemoryProductRepository::findByIdsCalls().
+     */
+    public function findByIdsCalls(): int
+    {
+        return $this->findByIdsCalls;
     }
 
     public function all(): array
