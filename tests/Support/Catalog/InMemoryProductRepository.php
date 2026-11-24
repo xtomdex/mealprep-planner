@@ -19,6 +19,8 @@ final class InMemoryProductRepository implements ProductRepository
     /** @var array<string, Product> keyed by id value */
     private array $products = [];
 
+    private int $findByIdsCalls = 0;
+
     public function get(ProductId $id): Product
     {
         return $this->products[$id->value] ?? throw new NotFoundException('Product', $id->value);
@@ -26,6 +28,7 @@ final class InMemoryProductRepository implements ProductRepository
 
     public function findByIds(array $ids): array
     {
+        ++$this->findByIdsCalls;
         $found = [];
         foreach ($ids as $id) {
             if (isset($this->products[$id->value])) {
@@ -34,6 +37,15 @@ final class InMemoryProductRepository implements ProductRepository
         }
 
         return array_values($found);
+    }
+
+    /**
+     * How many times findByIds() ran, so a test can pin that a read costs
+     * one batch call and not one call per line (no N+1).
+     */
+    public function findByIdsCalls(): int
+    {
+        return $this->findByIdsCalls;
     }
 
     public function all(): array

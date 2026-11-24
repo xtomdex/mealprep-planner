@@ -53,6 +53,19 @@ final class InMemoryCatalogRepositoriesTest extends TestCase
         self::assertSame([$product], $repository->findByIds([new ProductId(self::A), new ProductId(self::B), new ProductId(self::A)]));
     }
 
+    public function testFindByIdsCallsAreCountedOncePerCallNotPerId(): void
+    {
+        $products = new InMemoryProductRepository();
+        $components = new InMemoryComponentRepository();
+
+        $products->findByIds([new ProductId(self::A), new ProductId(self::B)]);
+        $products->findByIds([]);
+        $components->findByIds([new ComponentId(self::A), new ComponentId(self::B)]);
+
+        self::assertSame(2, $products->findByIdsCalls());
+        self::assertSame(1, $components->findByIdsCalls());
+    }
+
     public function testComponentGetFindAndAll(): void
     {
         $repository = new InMemoryComponentRepository();
