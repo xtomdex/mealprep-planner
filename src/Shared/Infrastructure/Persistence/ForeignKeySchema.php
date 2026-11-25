@@ -46,6 +46,7 @@ final class ForeignKeySchema
         ['catalog_component_ingredients', 'child_component_id', 'catalog_components', ReferentialAction::RESTRICT],
         ['catalog_dish_ingredients', 'product_id', 'catalog_products', ReferentialAction::RESTRICT],
         ['catalog_dish_ingredients', 'component_id', 'catalog_components', ReferentialAction::RESTRICT],
+        ['planning_meal_plan_entries', 'dish_id', 'catalog_dishes', ReferentialAction::RESTRICT],
     ];
 
     public function postGenerateSchema(GenerateSchemaEventArgs $args): void
