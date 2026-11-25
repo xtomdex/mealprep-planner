@@ -7,6 +7,7 @@ namespace App\Shared\Infrastructure\Persistence;
 use App\Shared\Application\TransactionalRunner;
 use App\Shared\Domain\Event\AggregateRoot;
 use App\Shared\Domain\Event\DomainEvent;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use Psr\Log\LoggerInterface;
@@ -47,6 +48,10 @@ use Symfony\Component\Messenger\MessageBusInterface;
  * still dispatched. The write is already durable at that point; rethrowing
  * would answer the client with a 500 for an action that succeeded.
  *
+ * A unique violation that a client can cause (a taken name) leaves as the
+ * domain's ConflictException, by constraint name (UniqueConstraintConflicts);
+ * every other database error is rethrown unchanged.
+ *
  * Messenger is used directly rather than behind an application port: only
  * this class publishes events, so a port would have one caller and one
  * implementation, both in infrastructure.
@@ -58,6 +63,7 @@ final readonly class DoctrineTransactionalRunner implements TransactionalRunner
         #[Autowire(service: 'event.bus')]
         private MessageBusInterface $events,
         private LoggerInterface $logger,
+        private UniqueConstraintConflicts $conflicts = new UniqueConstraintConflicts(),
     ) {
     }
 
@@ -83,6 +89,12 @@ final readonly class DoctrineTransactionalRunner implements TransactionalRunner
             $manager->close();
             if ($connection->isTransactionActive()) {
                 $connection->rollBack();
+            }
+
+            // After the rollback, so the conflict reaches a caller whose
+            // transaction is already clean.
+            if ($e instanceof UniqueConstraintViolationException) {
+                throw $this->conflicts->conflictFor($e) ?? $e;
             }
 
             throw $e;

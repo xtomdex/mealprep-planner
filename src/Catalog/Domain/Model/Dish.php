@@ -18,6 +18,10 @@ use Doctrine\Common\Collections\Collection;
  *
  * As with Component, the lines' references are checked against other
  * aggregates by IngredientReferenceGuard, not here.
+ *
+ * DSH-04 (dish names are unique in the catalog) is not checked here either,
+ * for the same reason as PRD-02 on Product: it is a UNIQUE constraint in the
+ * database, which the infrastructure layer turns into a 409 Conflict.
  */
 final class Dish
 {
@@ -39,6 +43,8 @@ final class Dish
      * DSH-01: the name is non-empty after trimming and at most 120 characters.
      * DSH-02: there is at least one ingredient line.
      * DSH-03: the same ingredient does not appear on two lines.
+     * DSH-04: the name is unique in the catalog; enforced by the database,
+     * not here (see the class docblock).
      *
      * @param list<IngredientLine> $lines positions are assigned in this order, starting at 1
      *

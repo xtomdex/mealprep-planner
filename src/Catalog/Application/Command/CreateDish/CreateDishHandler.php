@@ -9,6 +9,7 @@ use App\Catalog\Domain\Repository\DishRepository;
 use App\Catalog\Domain\Service\IngredientReferenceGuard;
 use App\Shared\Application\Bus\CommandHandler;
 use App\Shared\Application\TransactionalRunner;
+use App\Shared\Domain\Exception\ConflictException;
 use App\Shared\Domain\Exception\ValidationException;
 use Psr\Clock\ClockInterface;
 
@@ -27,6 +28,7 @@ final readonly class CreateDishHandler implements CommandHandler
      * dish's own rules first, then the references, then the insert.
      *
      * @throws ValidationException DSH-01..03, ING-01..03
+     * @throws ConflictException   DSH-04, raised by the database through the runner
      */
     public function __invoke(CreateDish $command): void
     {
