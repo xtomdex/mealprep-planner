@@ -28,9 +28,14 @@ doctrine:
         identity_generation_preferences:
             Doctrine\DBAL\Platforms\PostgreSQLPlatform: identity
         auto_mapping: false
-        # Mappings are added per module as XML (config/doctrine/<Module>) when the
-        # first entity appears; domain classes stay free of Doctrine attributes.
-        mappings: {}
+        # XML instead of attributes: the domain stays free of the ORM, and the
+        # whole mapping of a class is read in one file, next to its module's.
+        mappings:
+            Catalog:
+                type: xml
+                is_bundle: false
+                dir: '%kernel.project_dir%/config/doctrine/Catalog'
+                prefix: App\Catalog\Domain\Model
 
 when@test:
     doctrine:
