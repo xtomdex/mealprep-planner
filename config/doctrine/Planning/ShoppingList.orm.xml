@@ -5,10 +5,8 @@
 
     <!--
         meal_plan_id refers to the plan by id; its foreign key comes from ForeignKeySchema.
-        Known limit: replaceItems() followed by a single flush fails in Doctrine's identity
-        map, because a new item reuses the (list, position) key of an old one that is still
-        managed until its orphan delete runs. Persisting a regenerated list needs handling
-        outside the domain before it is used.
+        replaceItems() reuses the (list, position) keys of the old items; storing it in one
+        flush works through ShoppingListItemsReplacement (a preFlush listener).
     -->
     <entity name="App\Planning\Domain\Model\ShoppingList" table="planning_shopping_lists">
         <unique-constraints>
