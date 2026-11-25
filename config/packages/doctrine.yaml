@@ -5,6 +5,15 @@ doctrine:
         server_version: '17'
 
         profiling_collect_backtrace: '%kernel.debug%'
+
+        # Typed ids in native uuid columns, one type per id class (UuidType).
+        types:
+            product_id: App\Shared\Infrastructure\Persistence\Type\ProductIdType
+            component_id: App\Shared\Infrastructure\Persistence\Type\ComponentIdType
+            dish_id: App\Shared\Infrastructure\Persistence\Type\DishIdType
+            meal_plan_id: App\Planning\Infrastructure\Persistence\Type\MealPlanIdType
+            meal_plan_entry_id: App\Planning\Infrastructure\Persistence\Type\MealPlanEntryIdType
+            shopping_list_id: App\Planning\Infrastructure\Persistence\Type\ShoppingListIdType
     orm:
         validate_xml_mapping: true
         naming_strategy: doctrine.orm.naming_strategy.underscore
