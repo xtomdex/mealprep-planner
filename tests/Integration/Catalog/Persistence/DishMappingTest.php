@@ -18,6 +18,7 @@ use App\Shared\Domain\Measurement\Unit;
 use App\Tests\Support\Persistence\MappingTestCase;
 use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 final class DishMappingTest extends MappingTestCase
 {
@@ -71,6 +72,53 @@ final class DishMappingTest extends MappingTestCase
         ]);
     }
 
+    /**
+     * Exactly one id is set in both cases, so ck_..._one_ref passes and only
+     * the kind check can refuse the row.
+     *
+     * @return iterable<string, array{string, bool}> kind, whether the product id (not the component id) is set
+     */
+    public static function mismatchedKinds(): iterable
+    {
+        yield 'kind product, only a component id' => ['product', false];
+        yield 'kind component, only a product id' => ['component', true];
+    }
+
+    /**
+     * Hydration would turn such a row into an IngredientRef whose kind and
+     * id disagree; the constraint keeps it out of the table.
+     */
+    #[DataProvider('mismatchedKinds')]
+    public function testTheCheckRefusesALineWhoseKindDoesNotMatchItsId(string $kind, bool $productSet): void
+    {
+        $oil = $this->product();
+        $rice = new ComponentId(self::nextId());
+        $this->em()->persist(Component::create($rice, 'Cooked rice', 4, [
+            new IngredientLine(IngredientRef::product($oil), Quantity::of('5', Unit::Millilitre)),
+        ], new \DateTimeImmutable()));
+        $id = new DishId(self::nextId());
+        $this->em()->persist(Dish::create($id, 'Plain bowl', [
+            new IngredientLine(IngredientRef::product($oil), Quantity::of('1', Unit::Millilitre)),
+        ], new \DateTimeImmutable()));
+        $this->em()->flush();
+
+        // Not the oil: it is on line 1 already, and the unique index would answer first.
+        $vinegar = $this->product('Vinegar');
+
+        $this->expectException(DriverException::class);
+        $this->expectExceptionMessage('ck_catalog_dish_ingredients_ref_kind_matches');
+
+        $this->connection()->insert('catalog_dish_ingredients', [
+            'dish_id' => $id->value,
+            'position' => 2,
+            'ref_kind' => $kind,
+            'product_id' => $productSet ? $vinegar->value : null,
+            'child_component_id' => $productSet ? null : $rice->value,
+            'quantity_amount' => '1',
+            'quantity_unit' => 'ml',
+        ]);
+    }
+
     public function testALinePointingAtAMissingComponentIsRefusedByItsForeignKey(): void
     {
         $this->em()->persist(Dish::create(new DishId(self::nextId()), 'Ghost bowl', [
@@ -83,10 +131,10 @@ final class DishMappingTest extends MappingTestCase
         $this->em()->flush();
     }
 
-    private function product(): ProductId
+    private function product(string $name = 'Olive oil'): ProductId
     {
         $id = new ProductId(self::nextId());
-        $this->em()->persist(Product::create($id, 'Olive oil', MeasurementCategory::Volume, new \DateTimeImmutable()));
+        $this->em()->persist(Product::create($id, $name, MeasurementCategory::Volume, new \DateTimeImmutable()));
         $this->em()->flush();
 
         return $id;

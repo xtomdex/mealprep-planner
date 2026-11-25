@@ -100,6 +100,46 @@ final class ComponentMappingTest extends MappingTestCase
         ]);
     }
 
+    /**
+     * Exactly one id is set in both cases, so ck_..._one_ref passes and only
+     * the kind check can refuse the row.
+     *
+     * @return iterable<string, array{string, bool}> kind, whether the product id (not the component id) is set
+     */
+    public static function mismatchedKinds(): iterable
+    {
+        yield 'kind product, only a component id' => ['product', false];
+        yield 'kind component, only a product id' => ['component', true];
+    }
+
+    /**
+     * Hydration would turn such a row into an IngredientRef whose kind and
+     * id disagree; the constraint keeps it out of the table.
+     */
+    #[DataProvider('mismatchedKinds')]
+    public function testTheCheckRefusesALineWhoseKindDoesNotMatchItsId(string $kind, bool $productSet): void
+    {
+        $tomato = $this->product('Tomato');
+        $owner = $this->component('Spice mix', [new IngredientLine(IngredientRef::product($tomato), Quantity::of('10', Unit::Gram))]);
+        $child = $this->component('Salt mix', [new IngredientLine(IngredientRef::product($tomato), Quantity::of('5', Unit::Gram))]);
+
+        // Not Tomato: it is on line 1 already, and the unique index would answer first.
+        $salt = $this->product('Salt');
+
+        $this->expectException(DriverException::class);
+        $this->expectExceptionMessage('ck_catalog_component_ingredients_ref_kind_matches');
+
+        $this->connection()->insert('catalog_component_ingredients', [
+            'component_id' => $owner->value,
+            'position' => 2,
+            'ref_kind' => $kind,
+            'product_id' => $productSet ? $salt->value : null,
+            'child_component_id' => $productSet ? null : $child->value,
+            'quantity_amount' => '1',
+            'quantity_unit' => 'g',
+        ]);
+    }
+
     public function testALinePointingAtAMissingProductIsRefusedByItsForeignKey(): void
     {
         $this->em()->persist(Component::create(new ComponentId(self::nextId()), 'Ghost sauce', 1, [

@@ -8,8 +8,11 @@
         component is child_component_id, not component_id: on a component
         line component_id is the owner, and on a dish line the component is
         just as much a child of the dish in the bill-of-materials tree.
-        The "exactly one id" rule is CHECK ck_<table>_one_ref in the migration:
-        DBAL has no check constraints, so the mapping cannot carry it.
+        Doctrine builds the embeddable without calling product() or component(),
+        so nothing in PHP checks a loaded row. Two CHECKs in the migrations do:
+        ck_<table>_one_ref (exactly one id is set) and ck_<table>_ref_kind_matches
+        (it is the id ref_kind names). DBAL has no check constraints, so the
+        mapping cannot carry them.
     -->
     <embeddable name="App\Catalog\Domain\Model\IngredientRef">
         <field name="kind" column="ref_kind" type="string" length="16" enum-type="App\Catalog\Domain\Model\RefKind"/>
