@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Support\Persistence;
 
+use App\Catalog\Domain\Model\Product;
+use App\Shared\Domain\Identity\ProductId;
+use App\Shared\Domain\Measurement\MeasurementCategory;
+use App\Shared\Infrastructure\Identity\SymfonyUuidGenerator;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Doctrine\Middleware\Debug\DebugDataHolder;
 
@@ -23,6 +27,15 @@ trait DoctrineContract
     {
         $this->entityManager()->flush();
         $this->entityManager()->clear();
+    }
+
+    protected function existingProduct(): ProductId
+    {
+        $id = new ProductId((new SymfonyUuidGenerator())->nextId());
+        $this->entityManager()->persist(Product::create($id, 'Product '.$id->value, MeasurementCategory::Weight, new \DateTimeImmutable()));
+        $this->entityManager()->flush();
+
+        return $id;
     }
 
     /**

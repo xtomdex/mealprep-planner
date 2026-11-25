@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Support\Persistence;
 
+use App\Shared\Domain\Identity\ProductId;
 use App\Shared\Domain\Identity\Uuid;
 use App\Shared\Infrastructure\Identity\SymfonyUuidGenerator;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -22,6 +23,15 @@ abstract class RepositoryContract extends KernelTestCase
 {
     protected function flushAndClear(): void
     {
+    }
+
+    /**
+     * A product a line can point at. Any id will do for a fake; the Doctrine
+     * subclasses store a real product, because a line's foreign key insists.
+     */
+    protected function existingProduct(): ProductId
+    {
+        return new ProductId(self::nextId());
     }
 
     protected static function nextId(): string
