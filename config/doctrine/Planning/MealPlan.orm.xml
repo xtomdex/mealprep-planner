@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <!-- Recorded domain events (AggregateRoot) are not mapped: they live until released. -->
+    <entity name="App\Planning\Domain\Model\MealPlan" table="planning_meal_plans">
+        <indexes>
+            <index name="idx_planning_meal_plans_period_start" columns="period_start"/>
+        </indexes>
+
+        <id name="id" type="meal_plan_id"/>
+
+        <!-- Calendar days, not moments: a date column has no time zone to drift. -->
+        <field name="periodStart" column="period_start" type="date_immutable"/>
+        <field name="periodEnd" column="period_end" type="date_immutable"/>
+        <field name="status" type="string" length="16" enum-type="App\Planning\Domain\Model\MealPlanStatus"/>
+        <field name="finalizedAt" column="finalized_at" type="datetimetz_micro_immutable" nullable="true"/>
+        <field name="createdAt" column="created_at" type="datetimetz_micro_immutable"/>
+        <field name="updatedAt" column="updated_at" type="datetimetz_micro_immutable"/>
+
+        <!--
+            Insertion order is not stored; the id stands in for it, because
+            ids are UUID v7 and sort in the order they were generated.
+        -->
+        <one-to-many field="entries" target-entity="App\Planning\Domain\Model\MealPlanEntry"
+                     mapped-by="mealPlan" orphan-removal="true">
+            <cascade>
+                <cascade-persist/>
+            </cascade>
+            <order-by>
+                <order-by-field name="day" direction="ASC"/>
+                <order-by-field name="id" direction="ASC"/>
+            </order-by>
+        </one-to-many>
+    </entity>
+</doctrine-mapping>

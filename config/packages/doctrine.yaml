@@ -36,6 +36,11 @@ doctrine:
                 is_bundle: false
                 dir: '%kernel.project_dir%/config/doctrine/Catalog'
                 prefix: App\Catalog\Domain\Model
+            Planning:
+                type: xml
+                is_bundle: false
+                dir: '%kernel.project_dir%/config/doctrine/Planning'
+                prefix: App\Planning\Domain\Model
             # Value objects of the shared kernel, embedded by both modules.
             Shared:
                 type: xml
