@@ -67,6 +67,10 @@ when@test:
         _instanceof: *handler_registration
         App\Tests\Support\Shared\Bus\:
             resource: '../tests/Support/Shared/Bus/'
+        # Subscribers for the runner's event tests, on event.bus only.
+        App\Tests\Support\Shared\Event\:
+            resource: '../tests/Support/Shared/Event/'
+            tags: [{ name: messenger.message_handler, bus: event.bus }]
         # Nothing in src/ uses the ports yet, so the compiler would remove
         # them; public in the test environment only, for the kernel tests.
         App\Shared\Application\Bus\CommandBus:
