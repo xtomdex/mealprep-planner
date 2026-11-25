@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Support\Persistence;
 
+use App\Planning\Domain\Model\MealPlanId;
 use App\Shared\Domain\Identity\DishId;
 use App\Shared\Domain\Identity\ProductId;
 use App\Shared\Domain\Identity\Uuid;
@@ -41,6 +42,14 @@ abstract class RepositoryContract extends KernelTestCase
     protected function existingDish(): DishId
     {
         return new DishId(self::nextId());
+    }
+
+    /**
+     * A meal plan a shopping list can belong to; see existingProduct().
+     */
+    protected function existingPlan(): MealPlanId
+    {
+        return new MealPlanId(self::nextId());
     }
 
     protected static function nextId(): string

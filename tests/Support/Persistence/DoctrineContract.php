@@ -8,6 +8,8 @@ use App\Catalog\Domain\Model\Dish;
 use App\Catalog\Domain\Model\IngredientLine;
 use App\Catalog\Domain\Model\IngredientRef;
 use App\Catalog\Domain\Model\Product;
+use App\Planning\Domain\Model\MealPlan;
+use App\Planning\Domain\Model\MealPlanId;
 use App\Shared\Domain\Identity\DishId;
 use App\Shared\Domain\Identity\ProductId;
 use App\Shared\Domain\Measurement\MeasurementCategory;
@@ -49,6 +51,15 @@ trait DoctrineContract
         $id = new DishId((new SymfonyUuidGenerator())->nextId());
         $line = new IngredientLine(IngredientRef::product($this->existingProduct()), Quantity::of('100', Unit::Gram));
         $this->entityManager()->persist(Dish::create($id, 'Dish '.$id->value, [$line], new \DateTimeImmutable()));
+        $this->entityManager()->flush();
+
+        return $id;
+    }
+
+    protected function existingPlan(): MealPlanId
+    {
+        $id = new MealPlanId((new SymfonyUuidGenerator())->nextId());
+        $this->entityManager()->persist(MealPlan::create($id, new \DateTimeImmutable('2026-11-30'), new \DateTimeImmutable('2026-11-25'), new \DateTimeImmutable()));
         $this->entityManager()->flush();
 
         return $id;
