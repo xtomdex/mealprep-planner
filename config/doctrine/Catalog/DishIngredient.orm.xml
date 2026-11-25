@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <!-- Like ComponentIngredient: identity is (dish, position), references are ids. -->
+    <entity name="App\Catalog\Domain\Model\DishIngredient" table="catalog_dish_ingredients">
+        <indexes>
+            <index name="idx_catalog_dish_ingredients_dish_id" columns="dish_id"/>
+            <index name="idx_catalog_dish_ingredients_product_id" columns="product_id"/>
+            <index name="idx_catalog_dish_ingredients_component_id" columns="component_id"/>
+        </indexes>
+        <unique-constraints>
+            <!-- DSH-03 -->
+            <unique-constraint name="uq_catalog_dish_ingredients_dish_id_product_id" columns="dish_id,product_id"/>
+            <unique-constraint name="uq_catalog_dish_ingredients_dish_id_component_id" columns="dish_id,component_id"/>
+        </unique-constraints>
+
+        <id name="dish" association-key="true"/>
+        <id name="position" type="smallint"/>
+
+        <embedded name="ref" class="App\Catalog\Domain\Model\IngredientRef" use-column-prefix="false"/>
+        <embedded name="quantity" class="App\Shared\Domain\Measurement\Quantity" column-prefix="quantity_"/>
+
+        <many-to-one field="dish" target-entity="App\Catalog\Domain\Model\Dish" inversed-by="ingredients">
+            <join-column name="dish_id" referenced-column-name="id" nullable="false" on-delete="CASCADE"/>
+        </many-to-one>
+    </entity>
+</doctrine-mapping>
