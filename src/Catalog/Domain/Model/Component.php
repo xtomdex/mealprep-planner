@@ -17,6 +17,11 @@ use Doctrine\Common\Collections\Collection;
  * Whether the lines point at things that exist, in sensible units and
  * without cycles, needs other aggregates and is checked by
  * IngredientReferenceGuard before the component is created.
+ *
+ * CMP-05 (component names are unique in the catalog) is not checked here,
+ * for the same reason as PRD-02 on Product: an aggregate cannot see its
+ * siblings, and a check-then-insert would race. It is a UNIQUE constraint
+ * in the database, which the infrastructure layer turns into a 409 Conflict.
  */
 final class Component
 {
@@ -40,6 +45,8 @@ final class Component
      * CMP-02: there is at least one ingredient line.
      * CMP-03: the recipe yields at least one portion.
      * CMP-04: the same ingredient does not appear on two lines.
+     * CMP-05: the name is unique in the catalog; enforced by the database,
+     * not here (see the class docblock).
      *
      * @param list<IngredientLine> $lines positions are assigned in this order, starting at 1
      *

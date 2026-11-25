@@ -12,6 +12,7 @@ use App\Planning\Domain\Event\MealPlanFinalized;
 use App\Planning\Domain\Model\MealPlan;
 use App\Planning\Domain\Model\MealPlanEntryId;
 use App\Planning\Domain\Model\MealPlanId;
+use App\Shared\Domain\Exception\ConflictException;
 use App\Shared\Domain\Identity\DishId;
 use App\Shared\Domain\Identity\ProductId;
 use App\Shared\Domain\Measurement\MeasurementCategory;
@@ -22,7 +23,6 @@ use App\Tests\Support\Persistence\MappingTestCase;
 use App\Tests\Support\Shared\Event\RecordingEventSubscriber;
 use App\Tests\Support\Shared\Event\ThrowingEventSubscriber;
 use App\Tests\Support\Shared\RecordingLogger;
-use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\Persistence\ManagerRegistry;
 use Psr\Log\LogLevel;
 
@@ -71,7 +71,7 @@ final class DoctrineTransactionalRunnerEventsTest extends MappingTestCase
                 $this->em()->persist(Product::create(new ProductId(self::nextId()), 'Taken', MeasurementCategory::Weight, new \DateTimeImmutable()));
             });
             self::fail('The duplicate name should fail the flush.');
-        } catch (UniqueConstraintViolationException) {
+        } catch (ConflictException) {
         }
 
         self::assertSame([], $this->recorder()->received());

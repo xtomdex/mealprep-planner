@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Tests\Integration\Shared\Persistence;
 
 use App\Catalog\Domain\Model\Product;
+use App\Shared\Domain\Exception\ConflictException;
 use App\Shared\Domain\Identity\ProductId;
 use App\Shared\Domain\Measurement\MeasurementCategory;
 use App\Shared\Infrastructure\Persistence\DoctrineTransactionalRunner;
 use App\Tests\Support\Persistence\MappingTestCase;
-use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\Persistence\ManagerRegistry;
 use Psr\Log\NullLogger;
 
@@ -66,7 +66,7 @@ final class DoctrineTransactionalRunnerTest extends MappingTestCase
         try {
             $this->runner()->run(fn () => $manager->persist($this->product(new ProductId(self::nextId()), 'Rice')));
             self::fail('A duplicate name should fail the flush.');
-        } catch (UniqueConstraintViolationException) {
+        } catch (ConflictException) {
         }
         self::assertFalse($manager->isOpen());
 
