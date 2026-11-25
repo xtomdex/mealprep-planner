@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <!--
+        Identity is (list, position), like a recipe line. product_id has no
+        foreign key on purpose: the list is a snapshot, and the product name
+        is copied next to it so the list still reads the same later.
+    -->
+    <entity name="App\Planning\Domain\Model\ShoppingItem" table="planning_shopping_list_items">
+        <indexes>
+            <index name="idx_planning_shopping_list_items_shopping_list_id" columns="shopping_list_id"/>
+            <index name="idx_planning_shopping_list_items_product_id" columns="product_id"/>
+        </indexes>
+
+        <id name="shoppingList" association-key="true"/>
+        <id name="position" type="smallint"/>
+
+        <field name="productId" column="product_id" type="product_id"/>
+        <field name="productName" column="product_name" type="string" length="120"/>
+
+        <embedded name="quantity" class="App\Shared\Domain\Measurement\Quantity" column-prefix="quantity_"/>
+
+        <many-to-one field="shoppingList" target-entity="App\Planning\Domain\Model\ShoppingList" inversed-by="items">
+            <join-column name="shopping_list_id" referenced-column-name="id" nullable="false" on-delete="CASCADE"/>
+        </many-to-one>
+    </entity>
+</doctrine-mapping>
