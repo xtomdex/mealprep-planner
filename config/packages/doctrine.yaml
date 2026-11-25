@@ -4,10 +4,18 @@ doctrine:
 
         server_version: '17'
 
+        # Introspected timestamptz columns are read as the microsecond type,
+        # so schema:validate and migrations:diff compare like with like.
+        mapping_types:
+            timestamptz: datetimetz_micro_immutable
+
         profiling_collect_backtrace: '%kernel.debug%'
 
-        # Typed ids in native uuid columns, one type per id class (UuidType).
+        # Typed ids in native uuid columns, one type per id class (UuidType);
+        # amounts and moments with the precision the domain needs.
         types:
+            decimal_amount: App\Shared\Infrastructure\Persistence\Type\DecimalAmountType
+            datetimetz_micro_immutable: App\Shared\Infrastructure\Persistence\Type\DateTimeTzMicroImmutableType
             product_id: App\Shared\Infrastructure\Persistence\Type\ProductIdType
             component_id: App\Shared\Infrastructure\Persistence\Type\ComponentIdType
             dish_id: App\Shared\Infrastructure\Persistence\Type\DishIdType
