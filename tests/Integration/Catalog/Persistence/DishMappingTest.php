@@ -78,7 +78,7 @@ final class DishMappingTest extends MappingTestCase
         ], new \DateTimeImmutable()));
 
         $this->expectException(ForeignKeyConstraintViolationException::class);
-        $this->expectExceptionMessage('fk_catalog_dish_ingredients_component_id');
+        $this->expectExceptionMessage('fk_catalog_dish_ingredients_child_component_id');
 
         $this->em()->flush();
     }

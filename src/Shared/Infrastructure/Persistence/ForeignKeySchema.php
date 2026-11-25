@@ -45,7 +45,7 @@ final class ForeignKeySchema
         ['catalog_component_ingredients', 'product_id', 'catalog_products', ReferentialAction::RESTRICT],
         ['catalog_component_ingredients', 'child_component_id', 'catalog_components', ReferentialAction::RESTRICT],
         ['catalog_dish_ingredients', 'product_id', 'catalog_products', ReferentialAction::RESTRICT],
-        ['catalog_dish_ingredients', 'component_id', 'catalog_components', ReferentialAction::RESTRICT],
+        ['catalog_dish_ingredients', 'child_component_id', 'catalog_components', ReferentialAction::RESTRICT],
         ['planning_meal_plan_entries', 'dish_id', 'catalog_dishes', ReferentialAction::RESTRICT],
         // A list is a snapshot of its plan and goes with it.
         ['planning_shopping_lists', 'meal_plan_id', 'planning_meal_plans', ReferentialAction::CASCADE],

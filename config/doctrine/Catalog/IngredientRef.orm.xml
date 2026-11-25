@@ -4,15 +4,16 @@
                   xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
 
     <!--
-        Column names as on a dish line. On a component line the owner already
-        uses component_id, so ChildComponentColumn renames the component
-        reference to child_component_id there.
+        One set of column names for every table that embeds a reference. The
+        component is child_component_id, not component_id: on a component
+        line component_id is the owner, and on a dish line the component is
+        just as much a child of the dish in the bill-of-materials tree.
         The "exactly one id" rule is CHECK ck_<table>_one_ref in the migration:
         DBAL has no check constraints, so the mapping cannot carry it.
     -->
     <embeddable name="App\Catalog\Domain\Model\IngredientRef">
         <field name="kind" column="ref_kind" type="string" length="16" enum-type="App\Catalog\Domain\Model\RefKind"/>
         <field name="productId" column="product_id" type="product_id" nullable="true"/>
-        <field name="componentId" column="component_id" type="component_id" nullable="true"/>
+        <field name="componentId" column="child_component_id" type="component_id" nullable="true"/>
     </embeddable>
 </doctrine-mapping>

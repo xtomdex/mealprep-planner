@@ -23,15 +23,15 @@ final class Version20261125090401 extends AbstractMigration
         $this->addSql('CREATE TABLE catalog_dishes (id UUID NOT NULL, name VARCHAR(120) NOT NULL, created_at TIMESTAMP(6) WITH TIME ZONE NOT NULL, updated_at TIMESTAMP(6) WITH TIME ZONE NOT NULL, PRIMARY KEY (id))');
         $this->addSql('CREATE UNIQUE INDEX uq_catalog_dishes_name ON catalog_dishes (name)');
 
-        $this->addSql('CREATE TABLE catalog_dish_ingredients (dish_id UUID NOT NULL, position SMALLINT NOT NULL, ref_kind VARCHAR(16) NOT NULL, product_id UUID DEFAULT NULL, component_id UUID DEFAULT NULL, quantity_amount NUMERIC(14, 6) NOT NULL, quantity_unit VARCHAR(16) NOT NULL, PRIMARY KEY (position, dish_id), CONSTRAINT ck_catalog_dish_ingredients_one_ref CHECK ((product_id IS NULL) <> (component_id IS NULL)))');
+        $this->addSql('CREATE TABLE catalog_dish_ingredients (dish_id UUID NOT NULL, position SMALLINT NOT NULL, ref_kind VARCHAR(16) NOT NULL, product_id UUID DEFAULT NULL, child_component_id UUID DEFAULT NULL, quantity_amount NUMERIC(14, 6) NOT NULL, quantity_unit VARCHAR(16) NOT NULL, PRIMARY KEY (position, dish_id), CONSTRAINT ck_catalog_dish_ingredients_one_ref CHECK ((product_id IS NULL) <> (child_component_id IS NULL)))');
         $this->addSql('CREATE INDEX idx_catalog_dish_ingredients_dish_id ON catalog_dish_ingredients (dish_id)');
         $this->addSql('CREATE INDEX idx_catalog_dish_ingredients_product_id ON catalog_dish_ingredients (product_id)');
-        $this->addSql('CREATE INDEX idx_catalog_dish_ingredients_component_id ON catalog_dish_ingredients (component_id)');
+        $this->addSql('CREATE INDEX idx_catalog_dish_ingredients_child_component_id ON catalog_dish_ingredients (child_component_id)');
         $this->addSql('CREATE UNIQUE INDEX uq_catalog_dish_ingredients_dish_id_product_id ON catalog_dish_ingredients (dish_id, product_id)');
-        $this->addSql('CREATE UNIQUE INDEX uq_catalog_dish_ingredients_dish_id_component_id ON catalog_dish_ingredients (dish_id, component_id)');
+        $this->addSql('CREATE UNIQUE INDEX uq_catalog_dish_ingredients_dish_id_child_component_id ON catalog_dish_ingredients (dish_id, child_component_id)');
         $this->addSql('ALTER TABLE catalog_dish_ingredients ADD CONSTRAINT fk_catalog_dish_ingredients_dish_id FOREIGN KEY (dish_id) REFERENCES catalog_dishes (id) ON DELETE CASCADE');
         $this->addSql('ALTER TABLE catalog_dish_ingredients ADD CONSTRAINT fk_catalog_dish_ingredients_product_id FOREIGN KEY (product_id) REFERENCES catalog_products (id) ON DELETE RESTRICT');
-        $this->addSql('ALTER TABLE catalog_dish_ingredients ADD CONSTRAINT fk_catalog_dish_ingredients_component_id FOREIGN KEY (component_id) REFERENCES catalog_components (id) ON DELETE RESTRICT');
+        $this->addSql('ALTER TABLE catalog_dish_ingredients ADD CONSTRAINT fk_catalog_dish_ingredients_child_component_id FOREIGN KEY (child_component_id) REFERENCES catalog_components (id) ON DELETE RESTRICT');
     }
 
     public function down(Schema $schema): void
