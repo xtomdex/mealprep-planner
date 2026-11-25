@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <entity name="App\Catalog\Domain\Model\Product" table="catalog_products">
+        <unique-constraints>
+            <!-- PRD-02: the name says which rule a violation broke. -->
+            <unique-constraint name="uq_catalog_products_name" columns="name"/>
+        </unique-constraints>
+
+        <!-- No generator: ids come from the application (IdGenerator). -->
+        <id name="id" type="product_id"/>
+
+        <field name="name" length="120"/>
+        <field name="measurementCategory" column="measurement_category" length="16"
+               enum-type="App\Shared\Domain\Measurement\MeasurementCategory"/>
+        <field name="createdAt" column="created_at" type="datetimetz_micro_immutable"/>
+    </entity>
+</doctrine-mapping>
