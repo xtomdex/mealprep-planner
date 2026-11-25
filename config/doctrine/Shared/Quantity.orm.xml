@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <!--
+        Hydration skips Quantity::of(); decimal_amount gives the amount back
+        in the spelling of() would have produced ("150", not "150.000000").
+    -->
+    <embeddable name="App\Shared\Domain\Measurement\Quantity">
+        <field name="amount" column="amount" type="decimal_amount" precision="14" scale="6"/>
+        <field name="unit" column="unit" type="string" length="16" enum-type="App\Shared\Domain\Measurement\Unit"/>
+    </embeddable>
+</doctrine-mapping>

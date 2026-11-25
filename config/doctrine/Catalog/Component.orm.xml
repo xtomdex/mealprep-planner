@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <!-- CHECK ck_catalog_components_yield_positive (CMP-03) lives in the migration. -->
+    <entity name="App\Catalog\Domain\Model\Component" table="catalog_components">
+        <unique-constraints>
+            <unique-constraint name="uq_catalog_components_name" columns="name"/>
+        </unique-constraints>
+
+        <id name="id" type="component_id"/>
+
+        <field name="name" type="string" length="120"/>
+        <field name="yieldPortions" column="yield_portions" type="integer"/>
+        <field name="createdAt" column="created_at" type="datetimetz_micro_immutable"/>
+        <field name="updatedAt" column="updated_at" type="datetimetz_micro_immutable"/>
+
+        <!-- Lines belong to the component: saved with it, deleted when dropped from it. -->
+        <one-to-many field="ingredients" target-entity="App\Catalog\Domain\Model\ComponentIngredient"
+                     mapped-by="component" orphan-removal="true">
+            <cascade>
+                <cascade-persist/>
+            </cascade>
+            <order-by>
+                <order-by-field name="position" direction="ASC"/>
+            </order-by>
+        </one-to-many>
+    </entity>
+</doctrine-mapping>

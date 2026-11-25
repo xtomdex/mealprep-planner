@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <!--
+        Column names as on a dish line. On a component line the owner already
+        uses component_id, so ChildComponentColumn renames the component
+        reference to child_component_id there.
+        The "exactly one id" rule is CHECK ck_<table>_one_ref in the migration:
+        DBAL has no check constraints, so the mapping cannot carry it.
+    -->
+    <embeddable name="App\Catalog\Domain\Model\IngredientRef">
+        <field name="kind" column="ref_kind" type="string" length="16" enum-type="App\Catalog\Domain\Model\RefKind"/>
+        <field name="productId" column="product_id" type="product_id" nullable="true"/>
+        <field name="componentId" column="component_id" type="component_id" nullable="true"/>
+    </embeddable>
+</doctrine-mapping>
