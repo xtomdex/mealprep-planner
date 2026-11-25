@@ -37,7 +37,7 @@ final class ForeignKeySchema
 {
     /**
      * Single-column references between aggregates, all to an "id" column.
-     * RESTRICT: something still in use cannot be deleted.
+     * RESTRICT unless noted: something still in use cannot be deleted.
      *
      * @var list<array{string, string, string, ReferentialAction}> table, column, referenced table, on delete
      */
@@ -47,6 +47,8 @@ final class ForeignKeySchema
         ['catalog_dish_ingredients', 'product_id', 'catalog_products', ReferentialAction::RESTRICT],
         ['catalog_dish_ingredients', 'component_id', 'catalog_components', ReferentialAction::RESTRICT],
         ['planning_meal_plan_entries', 'dish_id', 'catalog_dishes', ReferentialAction::RESTRICT],
+        // A list is a snapshot of its plan and goes with it.
+        ['planning_shopping_lists', 'meal_plan_id', 'planning_meal_plans', ReferentialAction::CASCADE],
     ];
 
     public function postGenerateSchema(GenerateSchemaEventArgs $args): void
