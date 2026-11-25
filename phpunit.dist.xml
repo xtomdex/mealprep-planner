@@ -28,6 +28,10 @@
         <testsuite name="integration">
             <directory>tests/Integration</directory>
         </testsuite>
+        <!-- Each port's behaviour, run against the fake and the real implementation. -->
+        <testsuite name="contract">
+            <directory>tests/Contract</directory>
+        </testsuite>
         <testsuite name="functional">
             <directory>tests/Functional</directory>
         </testsuite>
