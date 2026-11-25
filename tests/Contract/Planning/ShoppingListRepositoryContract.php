@@ -48,6 +48,26 @@ abstract class ShoppingListRepositoryContract extends RepositoryContract
         self::assertNull($this->repository()->findByPlan(new MealPlanId(self::nextId())));
     }
 
+    /**
+     * How GenerateShoppingList regenerates: find the list, replace its items,
+     * no second add(). The list keeps its id; only the new items remain.
+     */
+    public function testReplacedItemsOfAFoundListAreKept(): void
+    {
+        $plan = $this->existingPlan();
+        $id = new ShoppingListId(self::nextId());
+        $this->repository()->add(ShoppingList::generate($id, $plan, [$this->requirement('Rice', '450'), $this->requirement('Tomato', '338')], new \DateTimeImmutable()));
+        $this->flushAndClear();
+
+        $this->repository()->findByPlan($plan)?->replaceItems([$this->requirement('Olive oil', '15'), $this->requirement('Rice', '900')], new \DateTimeImmutable());
+        $this->flushAndClear();
+
+        $list = $this->repository()->findByPlan($plan);
+        self::assertNotNull($list);
+        self::assertTrue($list->id()->equals($id));
+        self::assertSame([[1, 'Olive oil', '15 g'], [2, 'Rice', '900 g']], self::items($list));
+    }
+
     public function testASecondListForTheSamePlanIsRefused(): void
     {
         $plan = $this->existingPlan();
