@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help up down wait db-init test cs cs-fix stan deptrac check seed
+.PHONY: help up down wait db-init test cs cs-fix stan deptrac schema check seed
 
 COMPOSE = docker compose
 CONSOLE = php bin/console
@@ -41,7 +41,10 @@ stan: ## Static analysis (PHPStan level 8)
 deptrac: ## Check architecture rules between layers and modules
 	vendor/bin/deptrac analyse --no-progress
 
-check: cs stan deptrac test ## Everything CI runs
+schema: ## Check the mapping and that the test database matches it (needs make up, db-init)
+	$(CONSOLE) doctrine:schema:validate --env=test
+
+check: cs stan deptrac schema test ## Everything CI runs
 
 seed: ## Load demo data (arrives with the seed step)
 	@echo "Nothing to seed yet."
