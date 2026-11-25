@@ -8,12 +8,12 @@
         <indexes>
             <index name="idx_catalog_dish_ingredients_dish_id" columns="dish_id"/>
             <index name="idx_catalog_dish_ingredients_product_id" columns="product_id"/>
-            <index name="idx_catalog_dish_ingredients_component_id" columns="component_id"/>
+            <index name="idx_catalog_dish_ingredients_child_component_id" columns="child_component_id"/>
         </indexes>
         <unique-constraints>
-            <!-- DSH-03 -->
+            <!-- DSH-03. Both names fit in 63 characters, so nothing is shortened. -->
             <unique-constraint name="uq_catalog_dish_ingredients_dish_id_product_id" columns="dish_id,product_id"/>
-            <unique-constraint name="uq_catalog_dish_ingredients_dish_id_component_id" columns="dish_id,component_id"/>
+            <unique-constraint name="uq_catalog_dish_ingredients_dish_id_child_component_id" columns="dish_id,child_component_id"/>
         </unique-constraints>
 
         <id name="dish" association-key="true"/>
