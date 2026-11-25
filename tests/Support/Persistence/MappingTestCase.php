@@ -36,6 +36,24 @@ abstract class MappingTestCase extends KernelTestCase
         $this->em()->clear();
     }
 
+    /**
+     * Looked up by class and checked, for services that exist only in the
+     * test environment (static analysis reads the dev container).
+     *
+     * @template T of object
+     *
+     * @param class-string<T> $id
+     *
+     * @return T
+     */
+    protected static function service(string $id): object
+    {
+        $service = self::getContainer()->get($id);
+        self::assertInstanceOf($id, $service);
+
+        return $service;
+    }
+
     protected static function nextId(): string
     {
         return (new SymfonyUuidGenerator())->nextId();

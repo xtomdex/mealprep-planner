@@ -8,3 +8,10 @@ framework:
         buses:
             command.bus: ~
             query.bus: ~
+            # Domain events, dispatched by DoctrineTransactionalRunner after
+            # the commit. An event nobody listens to is normal, not a wiring
+            # bug, unlike a command without a handler.
+            event.bus:
+                default_middleware:
+                    enabled: true
+                    allow_no_handlers: true

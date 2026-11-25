@@ -11,6 +11,7 @@ use App\Shared\Infrastructure\Persistence\DoctrineTransactionalRunner;
 use App\Tests\Support\Persistence\MappingTestCase;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\Persistence\ManagerRegistry;
+use Psr\Log\NullLogger;
 
 final class DoctrineTransactionalRunnerTest extends MappingTestCase
 {
@@ -78,7 +79,11 @@ final class DoctrineTransactionalRunnerTest extends MappingTestCase
 
     private function runner(): DoctrineTransactionalRunner
     {
-        return new DoctrineTransactionalRunner(self::getContainer()->get(ManagerRegistry::class));
+        return new DoctrineTransactionalRunner(
+            self::getContainer()->get(ManagerRegistry::class),
+            self::getContainer()->get('event.bus'),
+            new NullLogger(),
+        );
     }
 
     private function product(ProductId $id, string $name): Product
