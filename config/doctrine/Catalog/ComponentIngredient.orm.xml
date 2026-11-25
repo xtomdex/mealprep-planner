@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <!--
+        Identity is (component, position): the owner association is part of
+        the primary key (derived identity), so a line needs no id of its own.
+        product_id and child_component_id point at other aggregates by id
+        only; their foreign keys come from ForeignKeySchema.
+    -->
+    <entity name="App\Catalog\Domain\Model\ComponentIngredient" table="catalog_component_ingredients">
+        <indexes>
+            <!-- DBAL adds an index to every foreign key that has none on exactly its columns; declared here, it gets a predictable name. -->
+            <index name="idx_catalog_component_ingredients_component_id" columns="component_id"/>
+            <index name="idx_catalog_component_ingredients_product_id" columns="product_id"/>
+            <index name="idx_catalog_component_ingredients_child_component_id" columns="child_component_id"/>
+        </indexes>
+        <unique-constraints>
+            <!-- CMP-04. The second name drops one "_id" to stay within PostgreSQL's 63 characters. -->
+            <unique-constraint name="uq_catalog_component_ingredients_component_id_product_id" columns="component_id,product_id"/>
+            <unique-constraint name="uq_catalog_component_ingredients_component_child_component_id" columns="component_id,child_component_id"/>
+        </unique-constraints>
+
+        <id name="component" association-key="true"/>
+        <id name="position" type="smallint"/>
+
+        <embedded name="ref" class="App\Catalog\Domain\Model\IngredientRef" use-column-prefix="false"/>
+        <embedded name="quantity" class="App\Shared\Domain\Measurement\Quantity" column-prefix="quantity_"/>
+
+        <many-to-one field="component" target-entity="App\Catalog\Domain\Model\Component" inversed-by="ingredients">
+            <join-column name="component_id" referenced-column-name="id" nullable="false" on-delete="CASCADE"/>
+        </many-to-one>
+    </entity>
+</doctrine-mapping>
