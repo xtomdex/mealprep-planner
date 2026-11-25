@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Support\Persistence;
 
+use App\Shared\Domain\Identity\DishId;
 use App\Shared\Domain\Identity\ProductId;
 use App\Shared\Domain\Identity\Uuid;
 use App\Shared\Infrastructure\Identity\SymfonyUuidGenerator;
@@ -32,6 +33,14 @@ abstract class RepositoryContract extends KernelTestCase
     protected function existingProduct(): ProductId
     {
         return new ProductId(self::nextId());
+    }
+
+    /**
+     * A dish a plan entry can point at; see existingProduct().
+     */
+    protected function existingDish(): DishId
+    {
+        return new DishId(self::nextId());
     }
 
     protected static function nextId(): string

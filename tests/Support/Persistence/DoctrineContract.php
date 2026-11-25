@@ -4,9 +4,15 @@ declare(strict_types=1);
 
 namespace App\Tests\Support\Persistence;
 
+use App\Catalog\Domain\Model\Dish;
+use App\Catalog\Domain\Model\IngredientLine;
+use App\Catalog\Domain\Model\IngredientRef;
 use App\Catalog\Domain\Model\Product;
+use App\Shared\Domain\Identity\DishId;
 use App\Shared\Domain\Identity\ProductId;
 use App\Shared\Domain\Measurement\MeasurementCategory;
+use App\Shared\Domain\Measurement\Quantity;
+use App\Shared\Domain\Measurement\Unit;
 use App\Shared\Infrastructure\Identity\SymfonyUuidGenerator;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Doctrine\Middleware\Debug\DebugDataHolder;
@@ -33,6 +39,16 @@ trait DoctrineContract
     {
         $id = new ProductId((new SymfonyUuidGenerator())->nextId());
         $this->entityManager()->persist(Product::create($id, 'Product '.$id->value, MeasurementCategory::Weight, new \DateTimeImmutable()));
+        $this->entityManager()->flush();
+
+        return $id;
+    }
+
+    protected function existingDish(): DishId
+    {
+        $id = new DishId((new SymfonyUuidGenerator())->nextId());
+        $line = new IngredientLine(IngredientRef::product($this->existingProduct()), Quantity::of('100', Unit::Gram));
+        $this->entityManager()->persist(Dish::create($id, 'Dish '.$id->value, [$line], new \DateTimeImmutable()));
         $this->entityManager()->flush();
 
         return $id;
